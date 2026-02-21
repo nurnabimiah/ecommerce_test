@@ -37,7 +37,6 @@ dependencies:
   get_it: ^7.7.0
   dio: ^5.5.0+1
   shared_preferences: ^2.3.0
-  connectivity_plus: ^6.0.5
   percent_indicator: ^4.2.5
   flutter_svg: ^2.1.0
   intl: ^0.20.2

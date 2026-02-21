@@ -29,10 +29,7 @@ Future<void> init() async {
   /// Controller
 
   Get.lazyPut(() => SplashController(),fenix: true);
-   Get.lazyPut(() => ProductController(dioClient: sl(),productRepo: sl(),sharedPreferencesClass: sl()),fenix: true);
-
-
-
+  Get.lazyPut(() => ProductController(dioClient: sl(),productRepo: sl(),sharedPreferencesClass: sl()),fenix: true);
 
 
 

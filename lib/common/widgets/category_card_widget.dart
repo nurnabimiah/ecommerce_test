@@ -1,7 +1,6 @@
 
-
+import 'package:eommerce_test/utils/app_images/app_images.dart';
 import 'package:flutter/material.dart';
-
 import '../../utils/app_colors/app_colors.dart';
 
 
@@ -33,7 +32,7 @@ class CategoryItem extends StatelessWidget {
           color: selected ? null : Colors.white,
           borderRadius: BorderRadius.circular(16),
 
-          /// 👇 primary border visible
+          ///  primary border visible
           border: Border.all(
             color: selected
                 ? Colors.transparent
@@ -69,13 +68,15 @@ class CategoryItem extends StatelessWidget {
                     ? Image.network(
                   image,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return _placeholder(selected);
+                  },
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return _placeholder(selected);
+                  },
                 )
-                    : Icon(
-                  Icons.category,
-                  color: selected
-                      ? Colors.white
-                      : AppColors.primary,
-                ),
+                    : _placeholder(selected),
               ),
             ),
 
@@ -100,4 +101,18 @@ class CategoryItem extends StatelessWidget {
       ),
     );
   }
+}
+
+
+
+
+
+Widget _placeholder(bool selected) {
+  return Padding(
+    padding: const EdgeInsets.all(6),
+    child: Image.asset(
+      AppImages.placeHolderImage,
+      color: selected ? Colors.white : AppColors.primary,
+    ),
+  );
 }

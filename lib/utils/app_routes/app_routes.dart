@@ -14,19 +14,6 @@ class AppRoutes {
     defaultTransitionPage(name: SplashScreen.routeName, page: () => SplashScreen()),
     defaultTransitionPage(name: HomeScreen.routeName, page: () => HomeScreen()),
 
-    //
-    //
-    //
-    //
-    // // read more screen
-    // dynamicArgumentPage(
-    //   name: ReadMoreScreen.routeName,
-    //   pageBuilder: (args) => ReadMoreScreen(
-    //     article: args["article"],
-    //     index: args["index"],
-    //   ),
-    // ),
-
 
 
 
