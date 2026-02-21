@@ -1,6 +1,7 @@
 
 
 
+import 'package:eommerce_test/features/home/presentation/screens/home_screen.dart';
 import 'package:get/get_state_manager/src/rx_flutter/rx_ticket_provider_mixin.dart';
 import 'dart:async';
 import 'package:flutter/animation.dart';
@@ -37,13 +38,7 @@ class SplashController extends GetxController with GetSingleTickerProviderStateM
     animationController.forward();
 
     Future.delayed(const Duration(seconds: 3), () async {
-      bool done = await onboardingController.isOnboardingCompleted();
-
-      if (done) {
-        Get.offAllNamed(LandingScreen.routeName);
-      } else {
-        Get.offAllNamed(OnboardingScreen.routeName);
-      }
+    Get.offAllNamed(HomeScreen.routeName);
     });
   }
 

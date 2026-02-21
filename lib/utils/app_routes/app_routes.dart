@@ -1,5 +1,6 @@
 
 
+import 'package:eommerce_test/features/home/presentation/screens/home_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
@@ -11,6 +12,7 @@ class AppRoutes {
   static final appRoutes = [
 
     defaultTransitionPage(name: SplashScreen.routeName, page: () => SplashScreen()),
+    defaultTransitionPage(name: HomeScreen.routeName, page: () => HomeScreen()),
 
     //
     //

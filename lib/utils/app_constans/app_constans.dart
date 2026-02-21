@@ -5,15 +5,15 @@
 
 
 class AppConstants {
-  static const String appName = 'Orddu';
+  static const String appName = 'Trendify';
   static const double appVersion = 1.0;
   static const String fontFamily = 'Exo';
-  static const String baseUrl = 'https://alexaviehar320.thesyndicates.team';
+  static const String baseUrl = 'https://dummyjson.com';
 
 
 
   //Authentication
-  static const String signIn = '/api/v1/login';
+  static const String allProducts = '/products';
 
 
 
