@@ -7,6 +7,7 @@ import '../../../../common/widgets/product_card_widgets.dart';
 import '../../../../utils/app_colors/app_colors.dart';
 import '../../controller/product_controller.dart';
 import '../widgets/categories_shimmer.dart';
+import '../widgets/product_error_widget.dart';
 import '../widgets/products_shimmer.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -20,7 +21,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text("Shop"),
+        title: const Text("Trendify"),
         elevation: 0,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -56,200 +57,170 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
 
-      body: CustomScrollView(
-        controller: controller.scrollController,
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: () async {
 
-          ///  CATEGORIES TITLE
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Text(
-                "Categories",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+          controller.selectedCategoryIndex.value = -1;
+          controller.selectedCategorySlug = null;
+
+          controller.skip = 0;
+          controller.hasMore = true;
+          controller.productList.clear();
+
+          if (controller.selectedCategorySlug != null) {
+            await controller.getProductsByCategory(controller.selectedCategorySlug!);
+          } else {
+            await controller.getAllProductsInfo();
+          }
+        },
+
+        child: CustomScrollView(
+          controller: controller.scrollController,
+          slivers: [
+        
+            ///  CATEGORIES TITLE
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Text(
+                  "Categories",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-          ),
-
-          ///  CATEGORIES LIST
-          SliverToBoxAdapter(
-            child: Obx(() {
-              if (controller.isLoadingCategories.value) {
-                return const SizedBox(
-                  height: 90,
-                  child: CategoriesShimmer(),
+        
+            ///  CATEGORIES LIST
+            SliverToBoxAdapter(
+              child: Obx(() {
+                if (controller.isLoadingCategories.value) {
+                  return const SizedBox(
+                    height: 90,
+                    child: CategoriesShimmer(),
+                  );
+                }
+        
+                if (controller.categories.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+        
+                return SizedBox(
+                  height: 90.h,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    itemCount: controller.categories.length,
+                    itemBuilder: (_, i) {
+                      final category = controller.categories[i];
+        
+                      return Obx(() {
+                        final selected =
+                            controller.selectedCategoryIndex.value == i;
+        
+                        return CategoryItem(
+                          title: category.name,
+                          image: category.url,
+                          selected: selected,
+                          onTap: () {
+                            controller.selectCategory(i);
+                          },
+                        );
+                      });
+                    },
+                  ),
+                );
+              }),
+            ),
+        
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 12),
+            ),
+        
+            /// PRODUCTS TITLE
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Text(
+                  "Products",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+        
+            /// PRODUCTS GRID
+            Obx(() {
+              final isLoading = controller.isLoadingProducts.value;
+              final hasError = controller.productsError.value.isNotEmpty;
+              final hasProducts = controller.productList.isNotEmpty;
+        
+              if (isLoading && !hasProducts) {
+                return const SliverToBoxAdapter(
+                  child: ProductsShimmer(),
                 );
               }
-
-              if (controller.categories.isEmpty) {
-                return const SizedBox.shrink();
+        
+              if (hasError && !hasProducts) {
+                return SliverToBoxAdapter(
+                  child: ProductErrorSection(
+                    message: controller.productsError.value,
+                    onRetry: controller.retryProducts,
+                  ),
+                );
               }
-
-              return SizedBox(
-                height: 90.h,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: controller.categories.length,
-                  itemBuilder: (_, i) {
-                    final category = controller.categories[i];
-
-                    return Obx(() {
-                      final selected =
-                          controller.selectedCategoryIndex.value == i;
-
-                      return CategoryItem(
-                        title: category.name,
-                        image: category.url,
-                        selected: selected,
-                        onTap: () {
-                          controller.selectCategory(i);
-                        },
+        
+              if (!hasProducts) {
+                return const SliverToBoxAdapter(
+                  child: Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(40),
+                      child: Text("No products yet"),
+                    ),
+                  ),
+                );
+              }
+        
+              return SliverPadding(
+                padding: const EdgeInsets.all(12),
+                sliver: SliverGrid(
+                  delegate: SliverChildBuilderDelegate(
+                        (_, i) {
+                      if (i >= controller.productList.length) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+        
+                      final product = controller.productList[i];
+        
+                      return ProductCardWidget(
+                        product: product,
+                        onTap: () {},
                       );
-                    });
-                  },
-                ),
-              );
-            }),
-          ),
-
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 12),
-          ),
-
-          /// PRODUCTS TITLE
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Text(
-                "Products",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-
-          /// PRODUCTS GRID
-          Obx(() {
-            final isLoading = controller.isLoadingProducts.value;
-            final hasError = controller.productsError.value.isNotEmpty;
-            final hasProducts = controller.productList.isNotEmpty;
-
-            if (isLoading && !hasProducts) {
-              return const SliverToBoxAdapter(
-                child: ProductsShimmer(),
-              );
-            }
-
-            if (hasError && !hasProducts) {
-              return SliverToBoxAdapter(
-                child: ProductErrorSection(
-                  message: controller.productsError.value,
-                  onRetry: controller.retryProducts,
-                ),
-              );
-            }
-
-            if (!hasProducts) {
-              return const SliverToBoxAdapter(
-                child: Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(40),
-                    child: Text("No products yet"),
+                    },
+                    childCount: controller.productList.length +
+                        (controller.hasMore ? 1 : 0),
+                  ),
+                  gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: .72,
                   ),
                 ),
               );
-            }
-
-            return SliverPadding(
-              padding: const EdgeInsets.all(12),
-              sliver: SliverGrid(
-                delegate: SliverChildBuilderDelegate(
-                      (_, i) {
-                    if (i >= controller.productList.length) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    }
-
-                    final product = controller.productList[i];
-
-                    return ProductCardWidget(
-                      product: product,
-                      onTap: () {},
-                    );
-                  },
-                  childCount: controller.productList.length +
-                      (controller.hasMore ? 1 : 0),
-                ),
-                gridDelegate:
-                const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: .72,
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
-
-    );
-  }
-}
-
-
-class ProductErrorSection extends StatelessWidget {
-  const ProductErrorSection({super.key,
-    required this.message,
-    required this.onRetry,
-  });
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.cloud_off_outlined,
-              size: 56,
-              color: Colors.grey.shade500,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: 20),
-              label: const Text("Retry"),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-            ),
+            }),
           ],
         ),
       ),
+
     );
   }
 }
+
+

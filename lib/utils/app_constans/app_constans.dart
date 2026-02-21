@@ -2,8 +2,6 @@
 
 
 
-
-
 class AppConstants {
   static const String appName = 'Trendify';
   static const double appVersion = 1.0;
@@ -12,12 +10,10 @@ class AppConstants {
 
 
 
-  //Authentication
+  //product
   static const String allProducts = '/products';
   static const String allCategories = '/products/categories';
   static const String categoryByProduct = '/products/category';
-
-
 
 
 

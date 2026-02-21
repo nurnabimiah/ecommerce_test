@@ -1,7 +1,6 @@
 
 import 'dart:convert';
 import 'package:eommerce_test/core/network/remote/dio/dio_client.dart';
-import 'package:eommerce_test/features/home/data/model/product_response_model.dart';
 import 'package:eommerce_test/features/home/data/repository/product_repo.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -35,7 +34,7 @@ class ProductController extends GetxController {
   ///categories
   RxList<CategoriesResponseModel> categories = <CategoriesResponseModel>[].obs;
 
-  RxInt selectedCategoryIndex = 0.obs;
+  RxInt selectedCategoryIndex = (-1).obs;
   RxBool isLoadingCategories = false.obs;
   RxString categoriesError = ''.obs;
 
@@ -54,6 +53,7 @@ class ProductController extends GetxController {
     super.onInit();
 
     loadLocalProducts();
+    loadCartLocal();
     getAllCategoriesInfo();
     getAllProductsInfo();
     scrollController.addListener(_paginationListener);
@@ -216,6 +216,25 @@ class ProductController extends GetxController {
     SharedPreferencesClass.setValue("products", jsonEncode(data));
   }
 
+
+  void saveCartLocal() {
+    SharedPreferencesClass.setValue(
+      "cart_items",
+      jsonEncode(cartList),
+    );
+  }
+
+  void loadCartLocal() async {
+    String? data =
+    await SharedPreferencesClass.getValue("cart_items");
+
+    if (data != null) {
+      List decoded = jsonDecode(data);
+      cartList.value =
+          decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+  }
+
   void loadLocalProducts() async {
     String? data =
     await SharedPreferencesClass.getValue("products");
@@ -229,19 +248,22 @@ class ProductController extends GetxController {
     }
   }
   /// ================= CART =================
-
   void toggleCart(Map<String, dynamic> item) {
     int id = item["id"];
 
-    int index =
-    cartList.indexWhere((e) => e["id"] == id);
+    int index = cartList.indexWhere((e) => e["id"] == id);
 
     if (index != -1) {
       cartList.removeAt(index);
     } else {
       cartList.add(item);
     }
+
+    saveCartLocal();
   }
+
+
+
 
   bool isInCart(dynamic id) {
     return cartList.any((e) => e["id"] == id);
