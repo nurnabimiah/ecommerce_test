@@ -8,13 +8,14 @@ import 'package:get/get.dart';
 import '../../../core/base_response/api_response.dart';
 import '../../../utils/helper/share_preference.dart';
 import '../data/model/categories_response_model.dart';
+import '../data/model/product_response_model.dart' as product_model;
 
 
 
 class ProductController extends GetxController {
-  final DioClient dioClient;
   final ProductRepo productRepo;
-  SharedPreferencesClass sharedPreferencesClass;
+  final DioClient dioClient;
+  final SharedPreferencesClass sharedPreferencesClass;
 
   ProductController({
     required this.productRepo,
@@ -23,47 +24,55 @@ class ProductController extends GetxController {
   });
 
 
-  // product
+
   TextEditingController searchController = TextEditingController();
   RxBool isLoadingProducts = false.obs;
   RxString productsError = ''.obs;
-  RxList<Product> productList = <Product>[].obs;
+
+  RxList<product_model.Product> productList = <product_model.Product>[].obs;
   RxList<Map<String, dynamic>> cartList = <Map<String, dynamic>>[].obs;
 
-
-  // categories
+  ///categories
   RxList<CategoriesResponseModel> categories = <CategoriesResponseModel>[].obs;
+
   RxInt selectedCategoryIndex = 0.obs;
   RxBool isLoadingCategories = false.obs;
   RxString categoriesError = ''.obs;
 
-  // Pagination
+  String? selectedCategorySlug;
+
+  /// pagination
+
   int limit = 10;
   int skip = 0;
   bool hasMore = true;
-
   ScrollController scrollController = ScrollController();
+
 
   @override
   void onInit() {
     super.onInit();
 
     loadLocalProducts();
-    getAllProductsInfo();
     getAllCategoriesInfo();
-
-    scrollController.addListener(() {
-      if (scrollController.position.pixels ==
-          scrollController.position.maxScrollExtent &&
-          hasMore &&
-          !isLoadingProducts.value) {
-        getAllProductsInfo();
-      }
-    });
+    getAllProductsInfo();
+    scrollController.addListener(_paginationListener);
   }
 
+  void _paginationListener() {
+    if (scrollController.position.pixels ==
+        scrollController.position.maxScrollExtent &&
+        hasMore &&
+        !isLoadingProducts.value) {
+      if (selectedCategorySlug != null) {
+        getProductsByCategory(selectedCategorySlug!);
+      } else {
+        getAllProductsInfo();
+      }
+    }
+  }
 
-  /// GET ALL PRODUCT API CALL WITH PAGINATION
+  // get all products
   Future<void> getAllProductsInfo() async {
     if (!hasMore) return;
 
@@ -72,11 +81,15 @@ class ProductController extends GetxController {
 
     try {
       ApiResponse apiResponse =
-      await productRepo.getAllProducts(limit: limit, skip: skip);
+      await productRepo.getAllProducts(
+        limit: limit,
+        skip: skip,
+      );
 
       if (apiResponse.response?.statusCode == 200) {
-        ProductResponseModel model =
-        ProductResponseModel.fromJson(apiResponse.response!.data);
+        product_model.ProductResponseModel model =
+        product_model.ProductResponseModel.fromJson(
+            apiResponse.response!.data);
 
         if (model.products.isNotEmpty) {
           productList.addAll(model.products);
@@ -86,84 +99,142 @@ class ProductController extends GetxController {
           hasMore = false;
         }
       } else {
-        productsError.value = 'Failed to load products. Pull to retry.';
+        productsError.value = 'Failed to load products.';
       }
     } catch (e) {
-      debugPrint("Error: $e");
-      productsError.value = 'Something went wrong. Tap to retry.';
+      productsError.value = 'Something went wrong.';
     } finally {
       isLoadingProducts.value = false;
     }
   }
 
 
-  /// GET ALL CATEGORIES
+  //get product by category
+  Future<void> getProductsByCategory(String category) async {
+    if (!hasMore) return;
+
+    isLoadingProducts.value = true;
+    productsError.value = '';
+
+    try {
+      ApiResponse apiResponse =
+      await productRepo.getProductByCategory(
+        limit: limit,
+        skip: skip,
+        category: category,
+      );
+
+      if (apiResponse.response?.statusCode == 200) {
+
+        /// 🔥 USE SAME MODEL
+        product_model.ProductResponseModel model =
+        product_model.ProductResponseModel.fromJson(
+            apiResponse.response!.data);
+
+        if (model.products.isNotEmpty) {
+          productList.addAll(model.products);
+          skip += limit;
+        } else {
+          hasMore = false;
+        }
+
+      } else {
+        productsError.value = 'Failed to load products.';
+      }
+    } catch (e) {
+      print("CATEGORY ERROR: $e");
+      productsError.value = 'Something went wrong.';
+    } finally {
+      isLoadingProducts.value = false;
+    }
+  }
+
+
+  /// ================= CATEGORIES =================
   Future<void> getAllCategoriesInfo() async {
     isLoadingCategories.value = true;
     categoriesError.value = '';
 
     try {
-      ApiResponse apiResponse = await productRepo.getAllCategories();
+      ApiResponse apiResponse =
+      await productRepo.getAllCategories();
 
-      if (apiResponse.response?.statusCode == 200) {
-        List data = apiResponse.response!.data;
-        categories.value = data
-            .map((e) => CategoriesResponseModel.fromJson(e))
-            .toList();
-        debugPrint("Categories Loaded: ${categories.length}");
+      final response = apiResponse.response;
+
+      if (response != null && response.statusCode == 200) {
+        final data = response.data;
+        if (data is List) {
+          categories.value = data.map((e) => CategoriesResponseModel.fromJson(e)).toList();
+        } else {
+          categoriesError.value = 'Invalid data format.';
+        }
       } else {
         categoriesError.value = 'Failed to load categories.';
       }
     } catch (e) {
-      debugPrint("Category Error: $e");
       categoriesError.value = 'Tap to retry';
     } finally {
       isLoadingCategories.value = false;
     }
   }
 
+  /// ================= CATEGORY SELECT =================
+
+  void selectCategory(int index) {
+    selectedCategoryIndex.value = index;
+
+    skip = 0;
+    hasMore = true;
+    productList.clear();
+
+    final categorySlug = categories[index].slug;
+    selectedCategorySlug = categorySlug;
+    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++🔥 🔥 🔥SELECTED SLUG = $categorySlug");
+
+    getProductsByCategory(categorySlug);
+  }
+
+  /// ================= RETRY =================
   void retryCategories() => getAllCategoriesInfo();
   void retryProducts() {
-    if (productList.isEmpty) {
-      skip = 0;
-      hasMore = true;
-      productList.clear();
+    skip = 0;
+    hasMore = true;
+    productList.clear();
+
+    if (selectedCategorySlug != null) {
+      getProductsByCategory(selectedCategorySlug!);
+    } else {
       getAllProductsInfo();
     }
   }
 
-  void selectCategory(int index) {
-    selectedCategoryIndex.value = index;
-  }
 
 
-
-  /// LOCAL SAVE
+  /// ================= LOCAL CACHE =================
   void saveProductsLocal() {
     List data = productList.map((e) => e.toJson()).toList();
     SharedPreferencesClass.setValue("products", jsonEncode(data));
   }
 
   void loadLocalProducts() async {
-    String? data = await SharedPreferencesClass.getValue("products");
+    String? data =
+    await SharedPreferencesClass.getValue("products");
 
     if (data != null) {
       List decoded = jsonDecode(data);
 
-      productList.value =
-          decoded.map((e) => Product.fromJson(e)).toList();
+      productList.value = decoded
+          .map((e) => product_model.Product.fromJson(e))
+          .toList();
     }
   }
-
-
-
-
-
-
+  /// ================= CART =================
 
   void toggleCart(Map<String, dynamic> item) {
     int id = item["id"];
-    int index = cartList.indexWhere((e) => e["id"] == id);
+
+    int index =
+    cartList.indexWhere((e) => e["id"] == id);
 
     if (index != -1) {
       cartList.removeAt(index);
@@ -175,13 +246,11 @@ class ProductController extends GetxController {
   bool isInCart(dynamic id) {
     return cartList.any((e) => e["id"] == id);
   }
-
   int get cartCount => cartList.length;
-
-
-
-
 }
+
+
+
 
 
 

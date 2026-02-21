@@ -2,6 +2,7 @@
 
 import 'package:dio/dio.dart';
 
+
 class ApiResponse {
   final Response? response;
   final dynamic message;
@@ -11,12 +12,11 @@ class ApiResponse {
 
   ApiResponse({this.response, this.message});
 
-  ApiResponse.withError(ApiResponse responseValue)
-      : response = responseValue.response,
-        message = responseValue.message;
-
+  ApiResponse.withError(String errorMessage)
+      : response = null,
+        message = errorMessage;
 
   ApiResponse.withSuccess(Response responseValue)
       : response = responseValue,
-        message = responseValue.data["message"];
+        message = null;
 }

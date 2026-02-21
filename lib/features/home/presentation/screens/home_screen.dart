@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../../common/widgets/category_card_widget.dart';
@@ -54,176 +55,158 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(width: 8),
         ],
       ),
-      body: Column(
-        children: [
-          /// SEARCH
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              controller: controller.searchController,
-              decoration: InputDecoration(
-                hintText: "Search products...",
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+
+      body: CustomScrollView(
+        controller: controller.scrollController,
+        slivers: [
+
+          ///  CATEGORIES TITLE
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Text(
+                "Categories",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ),
 
-          /// CATEGORIES
-          SizedBox(
-            height: 90,
+          ///  CATEGORIES LIST
+          SliverToBoxAdapter(
             child: Obx(() {
               if (controller.isLoadingCategories.value) {
-                return const CategoriesShimmer();
-              }
-              if (controller.categoriesError.value.isNotEmpty) {
-                return _CategoryErrorSection(
-                  message: controller.categoriesError.value,
-                  onRetry: controller.retryCategories,
+                return const SizedBox(
+                  height: 90,
+                  child: CategoriesShimmer(),
                 );
               }
+
               if (controller.categories.isEmpty) {
                 return const SizedBox.shrink();
               }
-              return ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                itemCount: controller.categories.length,
-                itemBuilder: (_, i) {
-                  final category = controller.categories[i];
-                  final selected = controller.selectedCategoryIndex.value == i;
-                  return CategoryItem(
-                    title: category.name,
-                    image: category.url,
-                    selected: selected,
-                    onTap: () => controller.selectCategory(i),
-                  );
-                },
+
+              return SizedBox(
+                height: 90.h,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  itemCount: controller.categories.length,
+                  itemBuilder: (_, i) {
+                    final category = controller.categories[i];
+
+                    return Obx(() {
+                      final selected =
+                          controller.selectedCategoryIndex.value == i;
+
+                      return CategoryItem(
+                        title: category.name,
+                        image: category.url,
+                        selected: selected,
+                        onTap: () {
+                          controller.selectCategory(i);
+                        },
+                      );
+                    });
+                  },
+                ),
               );
             }),
           ),
 
-          const SizedBox(height: 10),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 12),
+          ),
 
-          /// PRODUCTS
-          Expanded(
-            child: Obx(() {
-              final isLoading = controller.isLoadingProducts.value;
-              final hasError = controller.productsError.value.isNotEmpty;
-              final hasProducts = controller.productList.isNotEmpty;
+          /// PRODUCTS TITLE
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Text(
+                "Products",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
 
-              if (isLoading && !hasProducts) {
-                return const SingleChildScrollView(
-                  child: ProductsShimmer(),
-                );
-              }
-              if (hasError && !hasProducts) {
-                return _ProductErrorSection(
+          /// PRODUCTS GRID
+          Obx(() {
+            final isLoading = controller.isLoadingProducts.value;
+            final hasError = controller.productsError.value.isNotEmpty;
+            final hasProducts = controller.productList.isNotEmpty;
+
+            if (isLoading && !hasProducts) {
+              return const SliverToBoxAdapter(
+                child: ProductsShimmer(),
+              );
+            }
+
+            if (hasError && !hasProducts) {
+              return SliverToBoxAdapter(
+                child: ProductErrorSection(
                   message: controller.productsError.value,
                   onRetry: controller.retryProducts,
-                );
-              }
-              if (!hasProducts) {
-                return const Center(
-                  child: Text(
-                    "No products yet",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
-                );
-              }
+                ),
+              );
+            }
 
-              return GridView.builder(
-                controller: controller.scrollController,
-                padding: const EdgeInsets.all(12),
-                itemCount: controller.productList.length +
-                    (controller.hasMore ? 1 : 0),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            if (!hasProducts) {
+              return const SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Text("No products yet"),
+                  ),
+                ),
+              );
+            }
+
+            return SliverPadding(
+              padding: const EdgeInsets.all(12),
+              sliver: SliverGrid(
+                delegate: SliverChildBuilderDelegate(
+                      (_, i) {
+                    if (i >= controller.productList.length) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+
+                    final product = controller.productList[i];
+
+                    return ProductCardWidget(
+                      product: product,
+                      onTap: () {},
+                    );
+                  },
+                  childCount: controller.productList.length +
+                      (controller.hasMore ? 1 : 0),
+                ),
+                gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                   childAspectRatio: .72,
                 ),
-                itemBuilder: (_, i) {
-                  if (i >= controller.productList.length) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-                  final product = controller.productList[i];
-                  return ProductCardWidget(
-                    product: product,
-                    onTap: () {},
-                  );
-                },
-              );
-            }),
-          ),
+              ),
+            );
+          }),
         ],
       ),
+
     );
   }
 }
 
-class _CategoryErrorSection extends StatelessWidget {
-  const _CategoryErrorSection({
-    required this.message,
-    required this.onRetry,
-  });
 
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 40,
-              color: Colors.grey.shade600,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text("Retry"),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProductErrorSection extends StatelessWidget {
-  const _ProductErrorSection({
+class ProductErrorSection extends StatelessWidget {
+  const ProductErrorSection({super.key,
     required this.message,
     required this.onRetry,
   });

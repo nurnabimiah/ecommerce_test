@@ -1,12 +1,12 @@
 
 
 
-import 'dart:convert';
+
 
 class CategoriesResponseModel {
-  String slug;
-  String name;
-  String url;
+  final String slug;
+  final String name;
+  final String url;
 
   CategoriesResponseModel({
     required this.slug,
@@ -14,19 +14,19 @@ class CategoriesResponseModel {
     required this.url,
   });
 
-  factory CategoriesResponseModel.fromRawJson(String str) => CategoriesResponseModel.fromJson(json.decode(str));
+  factory CategoriesResponseModel.fromJson(Map<String, dynamic> json) {
+    return CategoriesResponseModel(
+      slug: json['slug'] ?? '',
+      name: json['name'] ?? '',
+      url: json['url'] ?? '',
+    );
+  }
 
-  String toRawJson() => json.encode(toJson());
-
-  factory CategoriesResponseModel.fromJson(Map<String, dynamic> json) => CategoriesResponseModel(
-    slug: json["slug"],
-    name: json["name"],
-    url: json["url"],
-  );
-
-  Map<String, dynamic> toJson() => {
-    "slug": slug,
-    "name": name,
-    "url": url,
-  };
+  Map<String, dynamic> toJson() {
+    return {
+      "slug": slug,
+      "name": name,
+      "url": url,
+    };
+  }
 }
