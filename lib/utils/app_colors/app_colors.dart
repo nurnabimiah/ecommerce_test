@@ -1,12 +1,9 @@
 
-
 import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
-
 import 'package:flutter/material.dart';
 
-import 'package:flutter/material.dart';
+
 
 class AppColors {
   static const Color primary = Color(0xFF1E88E5);
@@ -23,6 +20,6 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
-  /// Optional alias (if you want)
+  /// Optional alias
   static const LinearGradient gradient = primaryGradient;
 }

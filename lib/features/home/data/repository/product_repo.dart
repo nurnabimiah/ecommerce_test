@@ -13,7 +13,8 @@ class ProductRepo {
 
   ProductRepo({required this.dioClient,required this.sharedPreferencesClass});
 
-  /// get Budget Repo
+  /// get product Repo
+
   Future<ApiResponse> getAllProducts({
     required int limit,
     required int skip,
@@ -30,5 +31,30 @@ class ProductRepo {
       );
     }
   }
+
+
+
+  Future<ApiResponse> getAllCategories() async {
+    try {
+      Response response = await dioClient.get(
+        AppConstants.baseUrl + AppConstants.allCategories,
+      );
+
+      return ApiResponse.withSuccess(response);
+    } catch (e) {
+      return ApiResponse.withError(
+        ApiErrorHandler.getErrorResponse(error: e),
+      );
+    }
+  }
+
+
+
+
+
+
+
+
+
 
 }

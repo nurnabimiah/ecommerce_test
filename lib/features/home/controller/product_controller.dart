@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/base_response/api_response.dart';
 import '../../../utils/helper/share_preference.dart';
+import '../data/model/categories_response_model.dart';
 
 
 
@@ -25,9 +26,16 @@ class ProductController extends GetxController {
   // product
   TextEditingController searchController = TextEditingController();
   RxBool isLoadingProducts = false.obs;
+  RxString productsError = ''.obs;
   RxList<Product> productList = <Product>[].obs;
   RxList<Map<String, dynamic>> cartList = <Map<String, dynamic>>[].obs;
 
+
+  // categories
+  RxList<CategoriesResponseModel> categories = <CategoriesResponseModel>[].obs;
+  RxInt selectedCategoryIndex = 0.obs;
+  RxBool isLoadingCategories = false.obs;
+  RxString categoriesError = ''.obs;
 
   // Pagination
   int limit = 10;
@@ -42,6 +50,7 @@ class ProductController extends GetxController {
 
     loadLocalProducts();
     getAllProductsInfo();
+    getAllCategoriesInfo();
 
     scrollController.addListener(() {
       if (scrollController.position.pixels ==
@@ -53,13 +62,13 @@ class ProductController extends GetxController {
     });
   }
 
-  /// ==========================================================================
+
   /// GET ALL PRODUCT API CALL WITH PAGINATION
-  /// ==========================================================================
   Future<void> getAllProductsInfo() async {
     if (!hasMore) return;
 
     isLoadingProducts.value = true;
+    productsError.value = '';
 
     try {
       ApiResponse apiResponse =
@@ -72,22 +81,64 @@ class ProductController extends GetxController {
         if (model.products.isNotEmpty) {
           productList.addAll(model.products);
           skip += limit;
-
           saveProductsLocal();
         } else {
           hasMore = false;
         }
+      } else {
+        productsError.value = 'Failed to load products. Pull to retry.';
       }
     } catch (e) {
       debugPrint("Error: $e");
+      productsError.value = 'Something went wrong. Tap to retry.';
     } finally {
       isLoadingProducts.value = false;
     }
   }
 
-  /// ==========================================================================
+
+  /// GET ALL CATEGORIES
+  Future<void> getAllCategoriesInfo() async {
+    isLoadingCategories.value = true;
+    categoriesError.value = '';
+
+    try {
+      ApiResponse apiResponse = await productRepo.getAllCategories();
+
+      if (apiResponse.response?.statusCode == 200) {
+        List data = apiResponse.response!.data;
+        categories.value = data
+            .map((e) => CategoriesResponseModel.fromJson(e))
+            .toList();
+        debugPrint("Categories Loaded: ${categories.length}");
+      } else {
+        categoriesError.value = 'Failed to load categories.';
+      }
+    } catch (e) {
+      debugPrint("Category Error: $e");
+      categoriesError.value = 'Tap to retry';
+    } finally {
+      isLoadingCategories.value = false;
+    }
+  }
+
+  void retryCategories() => getAllCategoriesInfo();
+  void retryProducts() {
+    if (productList.isEmpty) {
+      skip = 0;
+      hasMore = true;
+      productList.clear();
+      getAllProductsInfo();
+    }
+  }
+
+  void selectCategory(int index) {
+    selectedCategoryIndex.value = index;
+  }
+
+
+
   /// LOCAL SAVE
-  /// ============================================================================
   void saveProductsLocal() {
     List data = productList.map((e) => e.toJson()).toList();
     SharedPreferencesClass.setValue("products", jsonEncode(data));
@@ -103,6 +154,9 @@ class ProductController extends GetxController {
           decoded.map((e) => Product.fromJson(e)).toList();
     }
   }
+
+
+
 
 
 

@@ -14,6 +14,7 @@ class AppConstants {
 
   //Authentication
   static const String allProducts = '/products';
+  static const String allCategories = '/products/categories';
 
 
 
